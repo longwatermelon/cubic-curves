@@ -22,6 +22,39 @@ SDL_FPoint bezier(SDL_Point points[4], float t)
     return ret;
 }
 
+SDL_FPoint bspline(SDL_Point points[4], float t)
+{
+    float b[4] = {
+        (1.f / 6.f) * powf(1 - t, 3.f),
+        (1.f / 6.f) * (3 * powf(t, 3.f) - 6 * powf(t, 2.f) + 4),
+        (1.f / 6.f) * (-3 * powf(t, 3.f) + 3 * powf(t, 2.f) + 3 * t + 1),
+        (1.f / 6.f) * powf(t, 3.f)
+    };
+
+    SDL_FPoint ret = { 0.f, 0.f };
+
+    for (int i = 0; i < 4; ++i)
+    {
+        ret.x += b[i] * points[i].x;
+        ret.y += b[i] * points[i].y;
+    }
+
+    return ret;
+}
+
+void draw(SDL_Renderer *rend, SDL_Point *points)
+{
+    SDL_FPoint buf = bspline(points, 0.f);
+
+    SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+    for (float i = 0.f; i < 1.f; i += .001f)
+    {
+        SDL_FPoint p1 = bspline(points, i);
+        SDL_RenderDrawLine(rend, p1.x, p1.y, buf.x, buf.y);
+        buf = p1;
+    }
+}
+
 int main(int argc, char **argv)
 {
     SDL_Init(SDL_INIT_VIDEO);
@@ -31,14 +64,21 @@ int main(int argc, char **argv)
     bool running = true;
     SDL_Event evt;
 
-    SDL_Point points[4] = {
+    SDL_Point points[] = {
+        (SDL_Point){ 100, 400 },
+        (SDL_Point){ 100, 400 },
         (SDL_Point){ 100, 400 },
         (SDL_Point){ 200, 250 },
+        (SDL_Point){ 250, 600 },
         (SDL_Point){ 350, 300 },
+        (SDL_Point){ 400, 500 },
+        (SDL_Point){ 450, 200 },
+        (SDL_Point){ 500, 600 },
+        (SDL_Point){ 500, 600 },
         (SDL_Point){ 500, 600 }
     };
 
-    SDL_FPoint buf;
+    size_t len = sizeof(points) / sizeof(SDL_Point);
 
     while (running)
     {
@@ -54,17 +94,11 @@ int main(int argc, char **argv)
 
         SDL_RenderClear(rend);
 
-        buf = bezier(points, 0.f);
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        for (float i = 0.f; i < 1.f; i += .001f)
-        {
-            SDL_FPoint p1 = bezier(points, i);
-            SDL_RenderDrawLine(rend, p1.x, p1.y, buf.x, buf.y);
-            buf = p1;
-        }
+        for (size_t i = 0; i < len - 3; ++i)
+            draw(rend, &points[i]);
 
         SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < len - 1; ++i)
         {
             SDL_RenderDrawLine(rend, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
         }
